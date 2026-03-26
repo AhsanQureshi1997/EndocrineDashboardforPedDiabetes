@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pediatric Endocrine Risk Dashboard</title>
+  <title>Pediatric Endocrine Panel Management Dashboard</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="topbar">
     <div class="topbar-inner">
       <div>
-        <h1>Pediatric Endocrine Risk Dashboard</h1>
-        <p>Identify high-risk pediatric endocrine patients based on A1c trends, BMI changes, and adherence</p>
+        <h1>Pediatric Endocrine Panel Management Dashboard</h1>
+        <p>Guideline-aligned panel triage for glycemic control, follow-up gaps, technology gaps, and screening gaps</p>
       </div>
     </div>
   </header>
@@ -25,16 +25,24 @@
         </label>
         <button id="demoBtn" class="secondary-btn" type="button">Load Demo Data</button>
         <button id="downloadBtn" class="secondary-btn" type="button">Download Analyzed CSV</button>
+        <button id="highRiskBtn" class="secondary-btn" type="button">Show Urgent + Close Follow-Up</button>
+        <button id="allBtn" class="secondary-btn" type="button">Show All Patients</button>
       </div>
 
       <div class="helper-grid">
         <div class="helper-card">
           <h3>Expected CSV format</h3>
-<pre>patient_id,last_a1c,prev_a1c,bmi,prev_bmi,missed_visits</pre>
+<pre>patient_id,diabetes_type,last_a1c,prev_a1c,bmi,prev_bmi,days_since_last_visit,missed_visits,cgm_use,time_in_range,gmi,last_eye_exam_days,last_kidney_screen_days</pre>
         </div>
         <div class="helper-card">
-          <h3>Risk logic</h3>
-          <p>Risk score = (A1c increase × 2) + (BMI increase × 1) + (missed visits × 1.5)</p>
+          <h3>How this prototype triages patients</h3>
+          <ul>
+            <li><strong>Urgent review</strong>: very high A1c or markedly worsening control</li>
+            <li><strong>Closer follow-up</strong>: above-target A1c, rising trend, or visit-gap concerns</li>
+            <li><strong>Technology gap</strong>: not on CGM or missing CGM-informed data</li>
+            <li><strong>Screening gap</strong>: overdue eye or kidney screening</li>
+            <li><strong>Routine</strong>: stable control and no major care gaps</li>
+          </ul>
         </div>
       </div>
     </section>
@@ -43,31 +51,36 @@
 
     <section class="charts-grid">
       <div class="chart-card">
-        <h3>Risk Distribution</h3>
-        <canvas id="riskChart" width="500" height="280"></canvas>
+        <h3>Triage Category Distribution</h3>
+        <canvas id="categoryChart" width="560" height="300"></canvas>
       </div>
       <div class="chart-card">
-        <h3>Average A1c Change by Risk Tier</h3>
-        <canvas id="a1cChart" width="500" height="280"></canvas>
+        <h3>Average Current A1c by Category</h3>
+        <canvas id="a1cChart" width="560" height="300"></canvas>
       </div>
     </section>
 
     <section class="table-card">
       <div class="table-header">
-        <h3>Flagged Patient Panel</h3>
-        <p>Highest-risk patients are shown first</p>
+        <div>
+          <h3>Patient Panel</h3>
+          <p>Highest-priority patients are shown first</p>
+        </div>
+        <div id="tableStatus" class="table-status">Showing all patients</div>
       </div>
       <div class="table-wrap">
         <table id="resultsTable">
           <thead>
             <tr>
               <th>Patient</th>
-              <th>Risk Score</th>
-              <th>Status</th>
+              <th>Category</th>
+              <th>Priority</th>
+              <th>Current A1c</th>
               <th>A1c Change</th>
-              <th>BMI Change</th>
-              <th>Missed Visits</th>
-              <th>Reason</th>
+              <th>Days Since Visit</th>
+              <th>CGM</th>
+              <th>Key Gaps</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -83,6 +96,10 @@
       <div id="detailContent" class="detail-content"></div>
       <div class="detail-chart-wrap">
         <canvas id="patientChart" width="900" height="260"></canvas>
+      </div>
+      <div class="notes-card">
+        <h4>Clinical Interpretation</h4>
+        <p id="detailInterpretation"></p>
       </div>
     </section>
   </main>

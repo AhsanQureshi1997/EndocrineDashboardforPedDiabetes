@@ -1,22 +1,33 @@
 const fileInput = document.getElementById('fileInput');
 const demoBtn = document.getElementById('demoBtn');
 const downloadBtn = document.getElementById('downloadBtn');
+const highRiskBtn = document.getElementById('highRiskBtn');
+const allBtn = document.getElementById('allBtn');
 
 let currentProcessed = [];
-let patientChartRef = null;
+let currentView = "all";
 
 fileInput.addEventListener('change', handleFile);
 demoBtn.addEventListener('click', loadDemo);
 downloadBtn.addEventListener('click', downloadAnalyzedCSV);
+highRiskBtn.addEventListener('click', () => {
+  currentView = "high";
+  refreshCurrentView();
+});
+allBtn.addEventListener('click', () => {
+  currentView = "all";
+  refreshCurrentView();
+});
 
 function loadDemo() {
   const demoRows = [
-    { patient_id: "1001", last_a1c: 9.2, prev_a1c: 8.1, bmi: 27.0, prev_bmi: 25.0, missed_visits: 2 },
-    { patient_id: "1002", last_a1c: 7.5, prev_a1c: 7.6, bmi: 24.0, prev_bmi: 24.0, missed_visits: 0 },
-    { patient_id: "1003", last_a1c: 10.1, prev_a1c: 9.0, bmi: 30.0, prev_bmi: 28.0, missed_visits: 3 },
-    { patient_id: "1004", last_a1c: 8.0, prev_a1c: 8.4, bmi: 26.0, prev_bmi: 25.8, missed_visits: 1 },
-    { patient_id: "1005", last_a1c: 11.0, prev_a1c: 9.9, bmi: 34.0, prev_bmi: 31.5, missed_visits: 2 },
-    { patient_id: "1006", last_a1c: 6.9, prev_a1c: 7.2, bmi: 22.0, prev_bmi: 22.1, missed_visits: 0 }
+    { patient_id: "1001", diabetes_type: "T1D", last_a1c: 10.8, prev_a1c: 9.3, bmi: 24.2, prev_bmi: 23.9, days_since_last_visit: 140, missed_visits: 2, cgm_use: "No", time_in_range: 0, gmi: 0, last_eye_exam_days: 500, last_kidney_screen_days: 420 },
+    { patient_id: "1002", diabetes_type: "T1D", last_a1c: 7.1, prev_a1c: 7.3, bmi: 22.1, prev_bmi: 22.0, days_since_last_visit: 62, missed_visits: 0, cgm_use: "Yes", time_in_range: 72, gmi: 7.0, last_eye_exam_days: 210, last_kidney_screen_days: 200 },
+    { patient_id: "1003", diabetes_type: "T2D", last_a1c: 9.4, prev_a1c: 8.6, bmi: 35.1, prev_bmi: 34.3, days_since_last_visit: 95, missed_visits: 1, cgm_use: "No", time_in_range: 0, gmi: 0, last_eye_exam_days: 420, last_kidney_screen_days: 410 },
+    { patient_id: "1004", diabetes_type: "T1D", last_a1c: 8.2, prev_a1c: 8.0, bmi: 23.5, prev_bmi: 23.3, days_since_last_visit: 185, missed_visits: 2, cgm_use: "Yes", time_in_range: 51, gmi: 8.1, last_eye_exam_days: 320, last_kidney_screen_days: 380 },
+    { patient_id: "1005", diabetes_type: "T2D", last_a1c: 6.9, prev_a1c: 7.0, bmi: 31.0, prev_bmi: 31.3, days_since_last_visit: 84, missed_visits: 0, cgm_use: "No", time_in_range: 0, gmi: 0, last_eye_exam_days: 700, last_kidney_screen_days: 520 },
+    { patient_id: "1006", diabetes_type: "T1D", last_a1c: 11.6, prev_a1c: 10.1, bmi: 21.3, prev_bmi: 21.1, days_since_last_visit: 210, missed_visits: 3, cgm_use: "No", time_in_range: 0, gmi: 0, last_eye_exam_days: 610, last_kidney_screen_days: 630 },
+    { patient_id: "1007", diabetes_type: "T1D", last_a1c: 7.8, prev_a1c: 8.2, bmi: 20.8, prev_bmi: 21.0, days_since_last_visit: 70, missed_visits: 0, cgm_use: "Yes", time_in_range: 68, gmi: 7.5, last_eye_exam_days: 150, last_kidney_screen_days: 160 }
   ];
   processData(demoRows);
 }
@@ -49,7 +60,6 @@ function splitCSVLine(line) {
   const result = [];
   let current = '';
   let inQuotes = false;
-
   for (let i = 0; i < line.length; i++) {
     const ch = line[i];
     if (ch === '"') {
@@ -75,84 +85,210 @@ function toNum(val) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function yesNo(val) {
+  const s = String(val || "").trim().toLowerCase();
+  return s === "yes" || s === "y" || s === "true" || s === "1";
+}
+
 function computePatient(obj) {
-  const patient_id = obj.patient_id ?? obj.Patient ?? obj.id ?? "";
+  const patient_id = obj.patient_id ?? "";
+  const diabetes_type = obj.diabetes_type ?? "";
   const last_a1c = toNum(obj.last_a1c);
   const prev_a1c = toNum(obj.prev_a1c);
   const bmi = toNum(obj.bmi);
   const prev_bmi = toNum(obj.prev_bmi);
+  const days_since_last_visit = toNum(obj.days_since_last_visit);
   const missed_visits = toNum(obj.missed_visits);
+  const cgm_use = yesNo(obj.cgm_use);
+  const time_in_range = toNum(obj.time_in_range);
+  const gmi = toNum(obj.gmi);
+  const last_eye_exam_days = toNum(obj.last_eye_exam_days);
+  const last_kidney_screen_days = toNum(obj.last_kidney_screen_days);
 
   const a1cChange = +(last_a1c - prev_a1c).toFixed(2);
   const bmiChange = +(bmi - prev_bmi).toFixed(2);
-  const riskScore = +((a1cChange * 2) + (bmiChange * 1) + (missed_visits * 1.5)).toFixed(2);
 
-  let status = "Low";
-  if (riskScore > 3) status = "High";
-  else if (riskScore > 1.5) status = "Medium";
+  let priorityScore = 0;
+  const gaps = [];
+  const rationale = [];
+  let category = "Routine follow-up";
+  let categoryClass = "routine";
+  let action = "Continue routine follow-up.";
 
-  const reasons = [];
-  if (a1cChange > 0) reasons.push("A1c increasing");
-  if (bmiChange > 0) reasons.push("BMI increasing");
-  if (missed_visits > 0) reasons.push("Missed follow-up visits");
-  if (reasons.length === 0) reasons.push("Stable recent trend");
+  // Absolute A1c severity
+  if (last_a1c >= 11) {
+    priorityScore += 8;
+    gaps.push("Very high current A1c");
+    rationale.push("Current A1c is in a very high range.");
+  } else if (last_a1c >= 9) {
+    priorityScore += 5;
+    gaps.push("High current A1c");
+    rationale.push("Current A1c is above a commonly concerning threshold.");
+  } else if (last_a1c >= 7) {
+    priorityScore += 2;
+    rationale.push("Current A1c is above near-target range.");
+  }
+
+  // Trend
+  if (a1cChange >= 1) {
+    priorityScore += 3;
+    gaps.push("A1c worsening");
+    rationale.push("A1c has risen by at least 1 point since the prior value.");
+  } else if (a1cChange > 0) {
+    priorityScore += 1;
+    rationale.push("A1c is trending upward.");
+  }
+
+  // Follow-up / adherence
+  if (days_since_last_visit > 180) {
+    priorityScore += 3;
+    gaps.push("Long gap since visit");
+    rationale.push("Patient has not been seen in over 180 days.");
+  } else if (days_since_last_visit > 120) {
+    priorityScore += 2;
+    gaps.push("Visit gap");
+    rationale.push("Patient has an extended interval since last visit.");
+  }
+
+  if (missed_visits >= 2) {
+    priorityScore += 2;
+    gaps.push("Repeated missed visits");
+    rationale.push("Multiple missed visits suggest follow-up instability.");
+  } else if (missed_visits === 1) {
+    priorityScore += 1;
+    rationale.push("One recent missed visit is present.");
+  }
+
+  // Technology gap
+  const cgmGap = !cgm_use;
+  if (cgmGap) {
+    priorityScore += 1;
+    gaps.push("CGM gap");
+    rationale.push("CGM is not in use.");
+  }
+  if (cgm_use && time_in_range > 0 && time_in_range < 55) {
+    priorityScore += 2;
+    gaps.push("Low time in range");
+    rationale.push("Available CGM data suggests suboptimal time in range.");
+  }
+
+  // Screening gaps
+  const eyeGap = last_eye_exam_days > 365;
+  const kidneyGap = last_kidney_screen_days > 365;
+  if (eyeGap) {
+    priorityScore += 1;
+    gaps.push("Eye screening overdue");
+    rationale.push("Retinal screening interval appears overdue.");
+  }
+  if (kidneyGap) {
+    priorityScore += 1;
+    gaps.push("Kidney screening overdue");
+    rationale.push("Kidney screening interval appears overdue.");
+  }
+
+  // Category assignment
+  if (last_a1c >= 10 || (last_a1c >= 9 && (a1cChange >= 1 || days_since_last_visit > 120 || missed_visits >= 2))) {
+    category = "Urgent review";
+    categoryClass = "urgent";
+    action = "Prioritize near-term follow-up and review glycemic management plan.";
+  } else if (last_a1c >= 9 || a1cChange >= 1 || days_since_last_visit > 120 || missed_visits >= 2 || (cgm_use && time_in_range > 0 && time_in_range < 55)) {
+    category = "Closer follow-up";
+    categoryClass = "close";
+    action = "Arrange closer follow-up and review adherence, technology use, and trend drivers.";
+  } else if (cgmGap) {
+    category = "Technology gap";
+    categoryClass = "tech";
+    action = "Review whether CGM uptake or re-engagement could improve monitoring.";
+  } else if (eyeGap || kidneyGap) {
+    category = "Screening gap";
+    categoryClass = "screen";
+    action = "Address overdue complication screening at the next contact.";
+  }
+
+  if (gaps.length === 0) {
+    gaps.push("No major gap detected");
+    rationale.push("Current values suggest relatively stable follow-up and control.");
+  }
 
   return {
     patient_id,
+    diabetes_type,
     last_a1c,
     prev_a1c,
     bmi,
     prev_bmi,
+    days_since_last_visit,
     missed_visits,
+    cgm_use,
+    time_in_range,
+    gmi,
+    last_eye_exam_days,
+    last_kidney_screen_days,
     a1cChange,
     bmiChange,
-    riskScore,
-    status,
-    reason: reasons.join(", ")
+    priorityScore,
+    category,
+    categoryClass,
+    action,
+    keyGaps: gaps,
+    rationale
   };
 }
 
 function processData(rawRows) {
-  currentProcessed = rawRows.map(computePatient).sort((a, b) => b.riskScore - a.riskScore);
+  currentProcessed = rawRows.map(computePatient).sort((a, b) => {
+    if (b.priorityScore !== a.priorityScore) return b.priorityScore - a.priorityScore;
+    return b.last_a1c - a.last_a1c;
+  });
+  currentView = "all";
   renderSummary(currentProcessed);
-  renderTable(currentProcessed);
-  renderRiskChart(currentProcessed);
+  renderCategoryChart(currentProcessed);
   renderA1cChart(currentProcessed);
-  if (currentProcessed.length > 0) {
-    renderPatientDetail(currentProcessed[0]);
-  }
+  refreshCurrentView();
+  if (currentProcessed.length > 0) renderPatientDetail(currentProcessed[0]);
+}
+
+function refreshCurrentView() {
+  const rows = currentView === "high"
+    ? currentProcessed.filter(r => r.category === "Urgent review" || r.category === "Closer follow-up")
+    : currentProcessed;
+
+  document.getElementById("tableStatus").textContent =
+    currentView === "high" ? "Showing urgent + closer follow-up patients" : "Showing all patients";
+
+  renderTable(rows);
+  if (rows.length > 0) renderPatientDetail(rows[0]);
 }
 
 function renderSummary(rows) {
-  const high = rows.filter(r => r.status === "High");
-  const medium = rows.filter(r => r.status === "Medium");
-  const low = rows.filter(r => r.status === "Low");
-
-  const avgA1cChange = average(rows.map(r => r.a1cChange));
-  const avgRisk = average(rows.map(r => r.riskScore));
-  const totalMissed = rows.reduce((sum, r) => sum + r.missed_visits, 0);
-  const highest = rows.length ? rows[0].patient_id : "N/A";
+  const urgent = rows.filter(r => r.category === "Urgent review").length;
+  const close = rows.filter(r => r.category === "Closer follow-up").length;
+  const tech = rows.filter(r => r.category === "Technology gap").length;
+  const screen = rows.filter(r => r.category === "Screening gap").length;
+  const routine = rows.filter(r => r.category === "Routine follow-up").length;
+  const avgA1c = average(rows.map(r => r.last_a1c));
+  const overdue = rows.filter(r => r.days_since_last_visit > 120).length;
 
   document.getElementById("summary").innerHTML = `
     <div class="summary-box">
-      <h4>High-Risk Patients</h4>
-      <div class="big-number">${high.length}</div>
-      <div>${pct(high.length, rows.length)} of active panel</div>
+      <h4>Urgent Review</h4>
+      <div class="big-number">${urgent}</div>
+      <div>${pct(urgent, rows.length)} of current panel</div>
     </div>
     <div class="summary-box">
-      <h4>Average A1c Change</h4>
-      <div class="big-number">${avgA1cChange.toFixed(2)}</div>
-      <div>Across uploaded panel</div>
+      <h4>Closer Follow-Up</h4>
+      <div class="big-number">${close}</div>
+      <div>${pct(close, rows.length)} of current panel</div>
     </div>
     <div class="summary-box">
-      <h4>Total Missed Visits</h4>
-      <div class="big-number">${totalMissed}</div>
-      <div>Potential adherence burden</div>
+      <h4>Technology or Screening Gaps</h4>
+      <div class="big-number">${tech + screen}</div>
+      <div>${tech} technology, ${screen} screening</div>
     </div>
     <div class="summary-box">
-      <h4>Highest Flagged Patient</h4>
-      <div class="big-number">${highest}</div>
-      <div>Average risk score ${avgRisk.toFixed(2)}</div>
+      <h4>Average Current A1c</h4>
+      <div class="big-number">${avgA1c.toFixed(2)}</div>
+      <div>${overdue} patients >120 days since visit</div>
     </div>
   `;
 }
@@ -161,20 +297,23 @@ function renderTable(rows) {
   const tbody = document.querySelector("#resultsTable tbody");
   tbody.innerHTML = "";
 
-  rows.forEach((r, idx) => {
+  rows.forEach(row => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${escapeHtml(r.patient_id)}</td>
-      <td>${r.riskScore.toFixed(2)}</td>
-      <td><span class="status-pill ${r.status.toLowerCase()}">${r.status}</span></td>
-      <td>${signed(r.a1cChange)}</td>
-      <td>${signed(r.bmiChange)}</td>
-      <td>${r.missed_visits}</td>
       <td>
-        ${escapeHtml(r.reason)}
-        <div style="margin-top:8px;">
-          <button class="row-button" data-index="${idx}">View Detail</button>
-        </div>
+        <strong>${escapeHtml(row.patient_id)}</strong><br>
+        <span style="color:#5a6b85;">${escapeHtml(row.diabetes_type || "Diabetes panel")}</span>
+      </td>
+      <td><span class="category-pill ${row.categoryClass}">${escapeHtml(row.category)}</span></td>
+      <td><span class="priority-number">${row.priorityScore}</span></td>
+      <td>${row.last_a1c.toFixed(1)}</td>
+      <td>${signed(row.a1cChange)}</td>
+      <td>${row.days_since_last_visit}</td>
+      <td>${row.cgm_use ? "Yes" : "No"}</td>
+      <td>${renderGapList(row.keyGaps)}</td>
+      <td>
+        <div class="action-text">${escapeHtml(row.action)}</div>
+        <button class="row-button" data-id="${escapeHtml(row.patient_id)}">View Detail</button>
       </td>
     `;
     tbody.appendChild(tr);
@@ -182,18 +321,24 @@ function renderTable(rows) {
 
   document.querySelectorAll(".row-button").forEach(btn => {
     btn.addEventListener("click", () => {
-      const idx = parseInt(btn.getAttribute("data-index"), 10);
-      renderPatientDetail(currentProcessed[idx]);
-      document.getElementById("detailSection").scrollIntoView({ behavior: "smooth", block: "start" });
+      const id = btn.getAttribute("data-id");
+      const patient = currentProcessed.find(r => r.patient_id === id);
+      if (patient) {
+        renderPatientDetail(patient);
+        document.getElementById("detailSection").scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     });
   });
+}
+
+function renderGapList(gaps) {
+  return `<ul class="key-gap-list">${gaps.map(g => `<li>${escapeHtml(g)}</li>`).join("")}</ul>`;
 }
 
 function renderPatientDetail(patient) {
   const section = document.getElementById("detailSection");
   section.classList.remove("hidden");
-  document.getElementById("detailSubtitle").textContent = `Patient ${patient.patient_id} • ${patient.status} risk`;
-
+  document.getElementById("detailSubtitle").textContent = `${patient.patient_id} • ${patient.category}`;
   document.getElementById("detailContent").innerHTML = `
     <div class="metric-card">
       <div class="label">Current A1c</div>
@@ -204,50 +349,57 @@ function renderPatientDetail(patient) {
       <div class="value">${patient.prev_a1c.toFixed(1)}</div>
     </div>
     <div class="metric-card">
-      <div class="label">Current BMI</div>
-      <div class="value">${patient.bmi.toFixed(1)}</div>
+      <div class="label">A1c Change</div>
+      <div class="value">${signed(patient.a1cChange)}</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Days Since Last Visit</div>
+      <div class="value">${patient.days_since_last_visit}</div>
     </div>
     <div class="metric-card">
       <div class="label">Missed Visits</div>
       <div class="value">${patient.missed_visits}</div>
     </div>
     <div class="metric-card">
-      <div class="label">A1c Change</div>
-      <div class="value">${signed(patient.a1cChange)}</div>
+      <div class="label">CGM Use</div>
+      <div class="value">${patient.cgm_use ? "Yes" : "No"}</div>
     </div>
     <div class="metric-card">
-      <div class="label">BMI Change</div>
-      <div class="value">${signed(patient.bmiChange)}</div>
+      <div class="label">Time in Range</div>
+      <div class="value">${patient.time_in_range ? patient.time_in_range + "%" : "Not available"}</div>
     </div>
     <div class="metric-card">
-      <div class="label">Risk Score</div>
-      <div class="value">${patient.riskScore.toFixed(2)}</div>
-    </div>
-    <div class="metric-card">
-      <div class="label">Flag Reason</div>
-      <div class="value" style="font-size:1rem;font-weight:700;">${escapeHtml(patient.reason)}</div>
+      <div class="label">Overdue Screening</div>
+      <div class="value">${screeningLabel(patient)}</div>
     </div>
   `;
-
+  document.getElementById("detailInterpretation").textContent =
+    patient.rationale.join(" ") + " Suggested action: " + patient.action;
   drawPatientTrendChart(patient);
 }
 
-function renderRiskChart(rows) {
-  const canvas = document.getElementById("riskChart");
+function screeningLabel(patient) {
+  const gaps = [];
+  if (patient.last_eye_exam_days > 365) gaps.push("Eye");
+  if (patient.last_kidney_screen_days > 365) gaps.push("Kidney");
+  return gaps.length ? gaps.join(" + ") : "No major gap";
+}
+
+function renderCategoryChart(rows) {
+  const canvas = document.getElementById("categoryChart");
   const ctx = canvas.getContext("2d");
   clearCanvas(ctx, canvas);
 
-  const counts = {
-    High: rows.filter(r => r.status === "High").length,
-    Medium: rows.filter(r => r.status === "Medium").length,
-    Low: rows.filter(r => r.status === "Low").length
-  };
-
-  const labels = ["High", "Medium", "Low"];
-  const values = labels.map(l => counts[l]);
-  const colors = ["#AB0520", "#d99000", "#2f7d4b"];
-
-  drawBarChart(ctx, canvas, labels, values, colors, "Patient Count");
+  const labels = ["Urgent", "Close", "Tech", "Screen", "Routine"];
+  const values = [
+    rows.filter(r => r.category === "Urgent review").length,
+    rows.filter(r => r.category === "Closer follow-up").length,
+    rows.filter(r => r.category === "Technology gap").length,
+    rows.filter(r => r.category === "Screening gap").length,
+    rows.filter(r => r.category === "Routine follow-up").length
+  ];
+  const colors = ["#AB0520", "#d99000", "#0C4A9A", "#5a34a8", "#2f7d4b"];
+  drawBarChart(ctx, canvas, labels, values, colors, "Patients");
 }
 
 function renderA1cChart(rows) {
@@ -255,11 +407,17 @@ function renderA1cChart(rows) {
   const ctx = canvas.getContext("2d");
   clearCanvas(ctx, canvas);
 
-  const tiers = ["High", "Medium", "Low"];
-  const vals = tiers.map(t => average(rows.filter(r => r.status === t).map(r => r.a1cChange)));
-  const colors = ["#AB0520", "#d99000", "#2f7d4b"];
-
-  drawBarChart(ctx, canvas, tiers, vals.map(v => +v.toFixed(2)), colors, "Average A1c Change");
+  const groups = [
+    { label: "Urgent", filter: "Urgent review" },
+    { label: "Close", filter: "Closer follow-up" },
+    { label: "Tech", filter: "Technology gap" },
+    { label: "Screen", filter: "Screening gap" },
+    { label: "Routine", filter: "Routine follow-up" }
+  ];
+  const labels = groups.map(g => g.label);
+  const values = groups.map(g => +average(rows.filter(r => r.category === g.filter).map(r => r.last_a1c)).toFixed(2));
+  const colors = ["#AB0520", "#d99000", "#0C4A9A", "#5a34a8", "#2f7d4b"];
+  drawBarChart(ctx, canvas, labels, values, colors, "Average A1c");
 }
 
 function drawPatientTrendChart(patient) {
@@ -267,19 +425,18 @@ function drawPatientTrendChart(patient) {
   const ctx = canvas.getContext("2d");
   clearCanvas(ctx, canvas);
 
-  const values = [patient.prev_a1c, patient.last_a1c];
   const labels = ["Previous A1c", "Current A1c"];
+  const values = [patient.prev_a1c, patient.last_a1c];
   drawLineChart(ctx, canvas, labels, values, "#AB0520");
 }
 
 function drawBarChart(ctx, canvas, labels, values, colors, yTitle) {
-  const pad = { top: 20, right: 20, bottom: 45, left: 50 };
+  const pad = { top: 20, right: 20, bottom: 45, left: 54 };
   const w = canvas.width;
   const h = canvas.height;
   const chartW = w - pad.left - pad.right;
   const chartH = h - pad.top - pad.bottom;
   const maxVal = Math.max(...values, 1);
-  const barWidth = chartW / labels.length * 0.55;
 
   ctx.strokeStyle = "#cfd7e3";
   ctx.fillStyle = "#5a6b85";
@@ -296,14 +453,17 @@ function drawBarChart(ctx, canvas, labels, values, colors, yTitle) {
   }
 
   labels.forEach((label, i) => {
-    const x = pad.left + (chartW / labels.length) * i + ((chartW / labels.length) - barWidth) / 2;
+    const slotW = chartW / labels.length;
+    const barW = slotW * 0.56;
+    const x = pad.left + slotW * i + (slotW - barW) / 2;
     const barH = (values[i] / maxVal) * chartH;
     const y = h - pad.bottom - barH;
+
     ctx.fillStyle = colors[i];
-    ctx.fillRect(x, y, barWidth, barH);
+    ctx.fillRect(x, y, barW, barH);
     ctx.fillStyle = "#13294b";
     ctx.fillText(label, x, h - 18);
-    ctx.fillText(String(values[i]), x + barWidth / 4, y - 6);
+    if (Number.isFinite(values[i])) ctx.fillText(String(values[i]), x + barW / 5, y - 6);
   });
 
   ctx.save();
@@ -315,7 +475,7 @@ function drawBarChart(ctx, canvas, labels, values, colors, yTitle) {
 }
 
 function drawLineChart(ctx, canvas, labels, values, color) {
-  const pad = { top: 20, right: 30, bottom: 45, left: 50 };
+  const pad = { top: 20, right: 30, bottom: 45, left: 54 };
   const w = canvas.width;
   const h = canvas.height;
   const chartW = w - pad.left - pad.right;
@@ -359,7 +519,7 @@ function drawLineChart(ctx, canvas, labels, values, color) {
     ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = "#13294b";
-    ctx.fillText(labels[i], p.x - 30, h - 18);
+    ctx.fillText(labels[i], p.x - 34, h - 18);
     ctx.fillText(p.v.toFixed(1), p.x - 10, p.y - 10);
   });
 }
@@ -398,14 +558,20 @@ function downloadAnalyzedCSV() {
     return;
   }
   const headers = [
-    "patient_id","last_a1c","prev_a1c","bmi","prev_bmi","missed_visits",
-    "a1c_change","bmi_change","risk_score","status","reason"
+    "patient_id","diabetes_type","last_a1c","prev_a1c","bmi","prev_bmi",
+    "days_since_last_visit","missed_visits","cgm_use","time_in_range","gmi",
+    "last_eye_exam_days","last_kidney_screen_days","a1c_change","priority_score",
+    "category","action","key_gaps"
   ];
   const lines = [headers.join(",")];
   currentProcessed.forEach(r => {
     const row = [
-      r.patient_id, r.last_a1c, r.prev_a1c, r.bmi, r.prev_bmi, r.missed_visits,
-      r.a1cChange, r.bmiChange, r.riskScore, r.status, `"${r.reason.replaceAll('"', '""')}"`
+      r.patient_id, r.diabetes_type, r.last_a1c, r.prev_a1c, r.bmi, r.prev_bmi,
+      r.days_since_last_visit, r.missed_visits, r.cgm_use ? "Yes" : "No", r.time_in_range, r.gmi,
+      r.last_eye_exam_days, r.last_kidney_screen_days, r.a1cChange, r.priorityScore,
+      `"${r.category.replaceAll('"', '""')}"`,
+      `"${r.action.replaceAll('"', '""')}"`,
+      `"${r.keyGaps.join("; ").replaceAll('"', '""')}"`
     ];
     lines.push(row.join(","));
   });
@@ -413,7 +579,7 @@ function downloadAnalyzedCSV() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "analyzed_endocrine_panel.csv";
+  a.download = "clinical_endocrine_panel_analyzed.csv";
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

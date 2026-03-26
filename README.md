@@ -1,22 +1,23 @@
-# Pediatric Endocrine Risk Dashboard
+# Pediatric Endocrine Panel Management Dashboard
 
-GitHub Pages version of a pediatric endocrine clinic triage dashboard.
+A GitHub Pages dashboard designed to feel closer to a real clinic panel management workflow.
 
-## Features
+## What it includes
+- Guideline-aligned style triage logic centered on A1c severity, A1c trend, visit gaps, CGM gap, and overdue screening
+- Demo data auto-load
 - CSV upload
-- Load demo data automatically
 - Summary cards
-- Risk distribution chart
-- Average A1c change chart
-- Sorts highest-risk patients first
-- Clickable patient detail view
+- Category distribution chart
+- Average A1c chart
+- Panel table with actionable categories
+- Patient detail panel
 - Download analyzed CSV
 
 ## Expected CSV columns
-patient_id,last_a1c,prev_a1c,bmi,prev_bmi,missed_visits
+patient_id,diabetes_type,last_a1c,prev_a1c,bmi,prev_bmi,days_since_last_visit,missed_visits,cgm_use,time_in_range,gmi,last_eye_exam_days,last_kidney_screen_days
 
 ## Deploy on GitHub Pages
-1. Upload these files to your repo root or `/docs`
+1. Upload these files to your repo root or /docs
 2. Go to Settings > Pages
 3. Choose Deploy from a branch
 4. Select your branch and folder
