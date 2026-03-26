@@ -1,0 +1,4 @@
+patient_id,last_a1c,prev_a1c,bmi,prev_bmi,missed_visits
+1,9.2,8.1,27,25,2
+2,7.5,7.6,24,24,0
+3,10.1,9.0,30,28,3
