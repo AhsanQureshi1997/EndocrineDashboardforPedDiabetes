@@ -1,37 +1,92 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Endocrine Risk Dashboard</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pediatric Endocrine Risk Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
-
 <body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div>
+        <h1>Pediatric Endocrine Risk Dashboard</h1>
+        <p>Identify high-risk pediatric endocrine patients based on A1c trends, BMI changes, and adherence</p>
+      </div>
+    </div>
+  </header>
 
-<header>
-  <h1>Pediatric Endocrine Risk Dashboard</h1>
-  <p>Clinical panel risk stratification tool</p>
-</header>
+  <main class="container">
+    <section class="controls-card">
+      <div class="controls-row">
+        <label class="upload-label">
+          <span>Upload patient panel CSV</span>
+          <input type="file" id="fileInput" accept=".csv" />
+        </label>
+        <button id="demoBtn" class="secondary-btn" type="button">Load Demo Data</button>
+        <button id="downloadBtn" class="secondary-btn" type="button">Download Analyzed CSV</button>
+      </div>
 
-<div class="container">
+      <div class="helper-grid">
+        <div class="helper-card">
+          <h3>Expected CSV format</h3>
+<pre>patient_id,last_a1c,prev_a1c,bmi,prev_bmi,missed_visits</pre>
+        </div>
+        <div class="helper-card">
+          <h3>Risk logic</h3>
+          <p>Risk score = (A1c increase × 2) + (BMI increase × 1) + (missed visits × 1.5)</p>
+        </div>
+      </div>
+    </section>
 
-  <input type="file" id="fileInput">
+    <section id="summary" class="summary-grid"></section>
 
-  <div id="summary"></div>
+    <section class="charts-grid">
+      <div class="chart-card">
+        <h3>Risk Distribution</h3>
+        <canvas id="riskChart" width="500" height="280"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Average A1c Change by Risk Tier</h3>
+        <canvas id="a1cChart" width="500" height="280"></canvas>
+      </div>
+    </section>
 
-  <table id="resultsTable">
-    <thead>
-      <tr>
-        <th>Patient</th>
-        <th>Risk Score</th>
-        <th>Status</th>
-        <th>Reason</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+    <section class="table-card">
+      <div class="table-header">
+        <h3>Flagged Patient Panel</h3>
+        <p>Highest-risk patients are shown first</p>
+      </div>
+      <div class="table-wrap">
+        <table id="resultsTable">
+          <thead>
+            <tr>
+              <th>Patient</th>
+              <th>Risk Score</th>
+              <th>Status</th>
+              <th>A1c Change</th>
+              <th>BMI Change</th>
+              <th>Missed Visits</th>
+              <th>Reason</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
 
-</div>
+    <section id="detailSection" class="detail-card hidden">
+      <div class="detail-header">
+        <h3>Patient Detail</h3>
+        <p id="detailSubtitle"></p>
+      </div>
+      <div id="detailContent" class="detail-content"></div>
+      <div class="detail-chart-wrap">
+        <canvas id="patientChart" width="900" height="260"></canvas>
+      </div>
+    </section>
+  </main>
 
-<script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>

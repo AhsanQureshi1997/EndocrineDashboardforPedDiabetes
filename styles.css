@@ -1,49 +1,264 @@
-body {
-  font-family: Arial, sans-serif;
-  margin: 0;
-  background: #f5f5f5;
+* {
+  box-sizing: border-box;
 }
 
-header {
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f4f6f8;
+  color: #13294b;
+}
+
+.topbar {
   background: #0C234B;
   color: white;
-  padding: 20px;
+  padding: 28px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
 }
 
-h1 {
+.topbar-inner {
+  width: min(1200px, 94%);
+  margin: 0 auto;
+}
+
+.topbar h1 {
+  margin: 0 0 8px 0;
+  font-size: 2.6rem;
+}
+
+.topbar p {
   margin: 0;
+  font-size: 1.1rem;
+  opacity: 0.95;
 }
 
 .container {
+  width: min(1200px, 94%);
+  margin: 24px auto 48px auto;
+}
+
+.controls-card,
+.table-card,
+.chart-card,
+.detail-card {
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 4px 18px rgba(12,35,75,0.08);
   padding: 20px;
+  margin-bottom: 20px;
+}
+
+.controls-row {
+  display: flex;
+  gap: 14px;
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+.upload-label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.upload-label span {
+  color: #0C234B;
+}
+
+.secondary-btn {
+  background: white;
+  color: #0C234B;
+  border: 2px solid #0C234B;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.secondary-btn:hover {
+  background: #eef3fa;
+}
+
+.helper-grid,
+.summary-grid,
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.helper-card {
+  background: #f7f9fc;
+  border: 1px solid #dce3ee;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.helper-card h3,
+.chart-card h3,
+.table-header h3,
+.detail-header h3 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  color: #0C234B;
+}
+
+.helper-card pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #ffffff;
+  border: 1px solid #e6ebf2;
+  border-radius: 8px;
+  padding: 12px;
+  color: #333;
+}
+
+.summary-box {
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 4px 18px rgba(12,35,75,0.08);
+  padding: 18px;
+  border-top: 6px solid #AB0520;
+}
+
+.summary-box h4 {
+  margin: 0 0 8px 0;
+  color: #0C234B;
+}
+
+.summary-box .big-number {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #AB0520;
+}
+
+.chart-card canvas,
+.detail-chart-wrap canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.table-header p,
+.detail-header p {
+  margin: 0;
+  color: #5a6b85;
+}
+
+.table-wrap {
+  overflow-x: auto;
 }
 
 #resultsTable {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 20px;
+  min-width: 900px;
 }
 
 #resultsTable th {
   background: #AB0520;
   color: white;
-  padding: 10px;
+  padding: 12px;
+  text-align: left;
 }
 
 #resultsTable td {
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
+  padding: 12px;
+  border-bottom: 1px solid #e8edf5;
+}
+
+#resultsTable tbody tr:hover {
+  background: #f8fbff;
+}
+
+.status-pill {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-weight: 700;
+  min-width: 82px;
+  text-align: center;
 }
 
 .high {
+  background: #fde9ed;
   color: #AB0520;
-  font-weight: bold;
 }
 
 .medium {
-  color: #ff9800;
+  background: #fff4e6;
+  color: #b86b00;
 }
 
 .low {
-  color: #2e7d32;
+  background: #eaf7ee;
+  color: #256d3b;
+}
+
+.detail-card.hidden {
+  display: none;
+}
+
+.detail-content {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.metric-card {
+  background: #f7f9fc;
+  border: 1px solid #dce3ee;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.metric-card .label {
+  font-size: 0.9rem;
+  color: #5a6b85;
+  margin-bottom: 6px;
+}
+
+.metric-card .value {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #0C234B;
+}
+
+.row-button {
+  background: #0C234B;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.row-button:hover {
+  background: #16396f;
+}
+
+@media (max-width: 900px) {
+  .helper-grid,
+  .summary-grid,
+  .charts-grid,
+  .detail-content {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar h1 {
+    font-size: 2rem;
+  }
 }
